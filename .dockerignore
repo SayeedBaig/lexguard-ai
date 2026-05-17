@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+.gitignore
+.env*
+!.env.example
+README.md
+AGENTS.md
+CLAUDE.md
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
