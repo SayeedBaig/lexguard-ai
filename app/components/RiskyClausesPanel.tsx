@@ -1,78 +1,74 @@
 "use client";
 
-import type { RiskyClause } from "@/lib/types";
+import type { RiskLevel, RiskyClause } from "@/lib/types";
 import { riskConfig } from "@/lib/riskStyles";
-import { AlertIcon } from "./icons";
+import { DocumentAlertIcon } from "./icons";
+import { ResultSection } from "./results/ResultSection";
+import { RiskyClauseCard } from "./results/RiskyClauseCard";
+import { SectionHeader } from "./results/SectionHeader";
 
 interface RiskyClausesPanelProps {
   clauses: RiskyClause[];
   visible: boolean;
 }
 
+const severityOrder: RiskLevel[] = ["high", "medium", "low"];
+
 export function RiskyClausesPanel({ clauses, visible }: RiskyClausesPanelProps) {
   if (!visible) return null;
 
-  return (
-    <section
-      className="card card-elevated animate-fade-in-up rounded-xl p-6 sm:p-8"
-      aria-labelledby="risky-clauses-heading"
-    >
-      <header className="mb-6 flex items-start gap-4">
-        <div
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-50 text-red-600"
-          aria-hidden
-        >
-          <AlertIcon className="h-5 w-5" />
-        </div>
-        <div>
-          <h2
-            id="risky-clauses-heading"
-            className="text-lg font-semibold text-slate-900"
-          >
-            Flagged provisions
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
-            {clauses.length} clause{clauses.length !== 1 ? "s" : ""} identified
-            for legal review
-          </p>
-        </div>
-      </header>
+  const counts = severityOrder.reduce(
+    (acc, level) => {
+      acc[level] = clauses.filter((c) => c.severity === level).length;
+      return acc;
+    },
+    {} as Record<RiskLevel, number>,
+  );
 
-      <ul className="space-y-4">
-        {clauses.map((clause) => {
-          const cfg = riskConfig[clause.severity];
+  const sorted = [...clauses].sort(
+    (a, b) =>
+      severityOrder.indexOf(a.severity) - severityOrder.indexOf(b.severity),
+  );
+
+  return (
+    <ResultSection id="risky-clauses" empty={clauses.length === 0}>
+      <SectionHeader
+        label="Contract review"
+        title="Risky clauses"
+        description="Provisions flagged by severity — review before signing"
+        count={clauses.length}
+        icon={<DocumentAlertIcon className="h-5 w-5" />}
+        iconClassName="bg-red-50 text-red-600"
+      />
+
+      <div
+        className="mb-6 flex flex-wrap gap-2"
+        role="list"
+        aria-label="Clause severity summary"
+      >
+        {severityOrder.map((level) => {
+          const cfg = riskConfig[level];
+          const count = counts[level];
+          if (count === 0) return null;
+
           return (
-            <li
-              key={clause.id}
-              className="rounded-lg border border-slate-200 bg-slate-50/50 p-5 transition hover:border-slate-300 hover:bg-white"
+            <span
+              key={level}
+              role="listitem"
+              className={`inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold ${cfg.border} ${cfg.bg} ${cfg.color}`}
             >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="font-medium text-slate-900">{clause.title}</h3>
-                    {clause.lineRef && (
-                      <span className="font-mono text-xs text-slate-500">
-                        {clause.lineRef}
-                      </span>
-                    )}
-                  </div>
-                  <span className="mt-2 inline-block rounded bg-white px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500 ring-1 ring-slate-200">
-                    {clause.category}
-                  </span>
-                </div>
-                <span
-                  className={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${cfg.border} ${cfg.bg} ${cfg.color}`}
-                >
-                  {cfg.label}
-                </span>
-              </div>
-              <blockquote className="mt-4 border-l-[3px] border-red-300 bg-white py-2 pl-4 font-mono text-xs leading-relaxed text-slate-600">
-                {clause.excerpt}
-              </blockquote>
-            </li>
+              <span className={`h-2 w-2 rounded-full ${cfg.bar}`} aria-hidden />
+              {cfg.riskLabel}: {count}
+            </span>
           );
         })}
+      </div>
+
+      <ul className="space-y-5">
+        {sorted.map((clause, index) => (
+          <RiskyClauseCard key={clause.id} clause={clause} index={index} />
+        ))}
       </ul>
-    </section>
+    </ResultSection>
   );
 }

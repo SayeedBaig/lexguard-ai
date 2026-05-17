@@ -4,10 +4,11 @@ import type {
   AIFinding,
   AnalysisResult,
   Recommendation,
-  RiskLevel,
 } from "@/lib/types";
 import { riskConfig } from "@/lib/riskStyles";
+import { computeOverallRiskScore } from "@/lib/computeRiskScore";
 import { SparklesIcon } from "./icons";
+import { RiskBadge } from "./results/RiskBadge";
 
 interface AIFindingsSidebarProps {
   findings: AIFinding[];
@@ -33,7 +34,7 @@ export function AIFindingsSidebar({
         <div className="border-b border-slate-100 bg-gradient-to-r from-blue-50/80 to-slate-50 px-5 py-5">
           <div className="flex items-center gap-2.5">
             <div
-              className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white"
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm"
               aria-hidden
             >
               <SparklesIcon className="h-4 w-4" />
@@ -46,13 +47,43 @@ export function AIFindingsSidebar({
         </div>
 
         {result && visible && (
-          <div className="grid grid-cols-2 gap-3 border-b border-slate-100 p-4">
-            <Stat label="Word count" value={result.wordCount.toLocaleString()} />
-            <Stat
-              label="Overall risk"
-              value={riskConfig[result.overallRisk].label}
-              valueClass={riskConfig[result.overallRisk].color}
-            />
+          <div className="border-b border-slate-100 bg-indigo-50/40 px-4 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-indigo-700">
+              Document type
+            </p>
+            <p className="mt-0.5 text-sm font-semibold text-slate-900">
+              {result.documentType}
+            </p>
+            <p className="mt-0.5 text-xs text-indigo-600">
+              {result.documentTypeConfidence}% confidence
+            </p>
+          </div>
+        )}
+
+        {result && visible && (
+          <div className="border-b border-slate-100 p-4">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <span className="text-xs font-medium text-slate-500">
+                Risk score
+              </span>
+              <RiskBadge level={result.overallRisk} size="sm" showDot />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Stat
+                label="Score"
+                value={String(
+                  computeOverallRiskScore(
+                    result.riskScores,
+                    result.overallRisk,
+                  ),
+                )}
+                valueClass={riskConfig[result.overallRisk].color}
+              />
+              <Stat
+                label="Words"
+                value={result.wordCount.toLocaleString()}
+              />
+            </div>
           </div>
         )}
 
@@ -65,7 +96,7 @@ export function AIFindingsSidebar({
               {topRecommendations.map((rec) => (
                 <li
                   key={rec.id}
-                  className="rounded-md border border-blue-100 bg-white px-3 py-2 text-xs text-slate-700"
+                  className="rounded-lg border border-blue-100 bg-white px-3 py-2.5 text-xs"
                 >
                   <span className="font-medium text-slate-900">{rec.title}</span>
                 </li>
@@ -89,8 +120,8 @@ export function AIFindingsSidebar({
                 No insights yet
               </p>
               <p className="mt-1 text-xs leading-relaxed text-slate-500">
-                Run an analysis to surface AI-detected issues, fairness gaps,
-                and negotiation recommendations.
+                Run an analysis to surface AI-detected issues and negotiation
+                recommendations.
               </p>
             </li>
           )}
@@ -121,7 +152,9 @@ function Stat({
       <p className="text-[10px] font-medium uppercase tracking-wide text-slate-500">
         {label}
       </p>
-      <p className={`mt-0.5 text-sm font-semibold ${valueClass}`}>{value}</p>
+      <p className={`mt-0.5 text-sm font-semibold tabular-nums ${valueClass}`}>
+        {value}
+      </p>
     </div>
   );
 }
@@ -133,37 +166,26 @@ function FindingCard({
   finding: AIFinding;
   index: number;
 }) {
-  const cfg = riskConfig[finding.severity];
-
   return (
     <li
       className="animate-fade-in-up rounded-lg border border-slate-200 bg-white p-4 transition hover:border-blue-200 hover:shadow-sm"
       style={{ animationDelay: `${index * 50}ms` }}
     >
       <div className="mb-2 flex items-start justify-between gap-2">
-        <span className="rounded bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
+        <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-600">
           {finding.tag}
         </span>
-        <span className="text-xs font-semibold text-blue-600">
-          {finding.confidence}% confidence
+        <span className="text-xs font-semibold tabular-nums text-blue-600">
+          {finding.confidence}%
         </span>
       </div>
       <h3 className="text-sm font-medium text-slate-900">{finding.title}</h3>
       <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
         {finding.description}
       </p>
-      <SeverityPill severity={finding.severity} />
+      <div className="mt-3">
+        <RiskBadge level={finding.severity} size="sm" showDot />
+      </div>
     </li>
-  );
-}
-
-function SeverityPill({ severity }: { severity: RiskLevel }) {
-  const cfg = riskConfig[severity];
-  return (
-    <span
-      className={`mt-3 inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${cfg.border} ${cfg.bg} ${cfg.color}`}
-    >
-      {cfg.label} priority
-    </span>
   );
 }

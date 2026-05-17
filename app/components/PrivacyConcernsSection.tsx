@@ -1,7 +1,10 @@
 "use client";
 
 import type { PrivacyConcern } from "@/lib/types";
-import { riskConfig } from "@/lib/riskStyles";
+import { LockIcon } from "./icons";
+import { RiskBadge } from "./results/RiskBadge";
+import { ResultSection } from "./results/ResultSection";
+import { SectionHeader } from "./results/SectionHeader";
 
 interface PrivacyConcernsSectionProps {
   concerns: PrivacyConcern[];
@@ -12,49 +15,37 @@ export function PrivacyConcernsSection({
   concerns,
   visible,
 }: PrivacyConcernsSectionProps) {
-  if (!visible || concerns.length === 0) return null;
+  if (!visible) return null;
 
   return (
-    <section
-      className="card card-elevated animate-fade-in-up rounded-xl p-6 sm:p-8"
-      aria-labelledby="privacy-heading"
-    >
-      <header className="mb-6">
-        <p className="section-label">Data & privacy</p>
-        <h2
-          id="privacy-heading"
-          className="mt-1 text-lg font-semibold text-slate-900"
-        >
-          Privacy & data concerns
-        </h2>
-        <p className="mt-1 text-sm text-slate-600">
-          How your data may be collected, used, or shared under this agreement
-        </p>
-      </header>
+    <ResultSection id="privacy" empty={concerns.length === 0}>
+      <SectionHeader
+        label="Data & privacy"
+        title="Privacy concerns"
+        description="How your data may be collected, used, or shared"
+        count={concerns.length}
+        icon={<LockIcon className="h-5 w-5" />}
+        iconClassName="bg-violet-50 text-violet-700"
+      />
 
       <ul className="grid gap-4 sm:grid-cols-2">
-        {concerns.map((concern) => {
-          const cfg = riskConfig[concern.severity];
-          return (
-            <li
-              key={concern.id}
-              className="rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-5 shadow-sm"
-            >
-              <div className="mb-3 flex items-start justify-between gap-2">
-                <h3 className="font-medium text-slate-900">{concern.title}</h3>
-                <span
-                  className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${cfg.border} ${cfg.bg} ${cfg.color}`}
-                >
-                  {cfg.label}
-                </span>
-              </div>
-              <p className="text-sm leading-relaxed text-slate-600">
-                {concern.description}
-              </p>
-            </li>
-          );
-        })}
+        {concerns.map((concern) => (
+          <li
+            key={concern.id}
+            className="flex h-full flex-col rounded-xl border border-violet-100 bg-gradient-to-br from-violet-50/40 to-white p-5 shadow-sm transition hover:border-violet-200 hover:shadow-md"
+          >
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <h3 className="font-semibold leading-snug text-slate-900">
+                {concern.title}
+              </h3>
+              <RiskBadge level={concern.severity} size="sm" />
+            </div>
+            <p className="flex-1 text-sm leading-relaxed text-slate-600">
+              {concern.description}
+            </p>
+          </li>
+        ))}
       </ul>
-    </section>
+    </ResultSection>
   );
 }

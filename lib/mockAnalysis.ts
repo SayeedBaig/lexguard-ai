@@ -1,3 +1,4 @@
+import { normalizeDocumentType } from "./contractCategories";
 import type { AnalysisResult, RiskLevel } from "./types";
 
 const SAMPLE_CLAUSES = [
@@ -5,6 +6,8 @@ const SAMPLE_CLAUSES = [
     title: "Unlimited liability cap",
     excerpt:
       "…Party shall be liable for any and all damages, including indirect, consequential, and punitive damages, without limitation…",
+    explanation:
+      "Removes caps on damages and may expose you to uncapped financial liability beyond fees paid.",
     severity: "high" as const,
     category: "Liability",
     lineRef: "§ 8.2",
@@ -13,6 +16,8 @@ const SAMPLE_CLAUSES = [
     title: "Automatic renewal",
     excerpt:
       "…This Agreement shall automatically renew for successive twelve (12) month terms unless terminated in writing at least ninety (90) days prior…",
+    explanation:
+      "Easy to miss renewal deadlines — you could be locked in for another year without timely written notice.",
     severity: "medium" as const,
     category: "Term",
     lineRef: "§ 3.1",
@@ -21,6 +26,8 @@ const SAMPLE_CLAUSES = [
     title: "Broad indemnification",
     excerpt:
       "…Customer shall indemnify, defend, and hold harmless Provider from any claims arising out of Customer's use of the Services…",
+    explanation:
+      "You may have to cover the vendor's legal costs for a wide range of claims, even when misuse isn't your fault.",
     severity: "high" as const,
     category: "Indemnity",
     lineRef: "§ 9.4",
@@ -29,6 +36,8 @@ const SAMPLE_CLAUSES = [
     title: "Unilateral amendment",
     excerpt:
       "…Provider may modify this Agreement at any time by posting revised terms on its website; continued use constitutes acceptance…",
+    explanation:
+      "Terms can change without negotiation — continued use may bind you to less favorable conditions.",
     severity: "medium" as const,
     category: "Governance",
     lineRef: "§ 12.7",
@@ -37,6 +46,8 @@ const SAMPLE_CLAUSES = [
     title: "Data processing scope",
     excerpt:
       "…Provider may process Customer Data for product improvement, analytics, and machine learning model training…",
+    explanation:
+      "Your data may be used beyond delivering the service — confirm alignment with privacy policies and regulations.",
     severity: "low" as const,
     category: "Privacy",
     lineRef: "§ 5.3",
@@ -130,6 +141,29 @@ function pickOverall(scores: { low: number; medium: number; high: number }): Ris
   return "low";
 }
 
+function guessDocumentType(text: string): { type: string; confidence: number } {
+  const lower = text.toLowerCase();
+  if (lower.includes("master services") || lower.includes("msa"))
+    return { type: "Master Services Agreement", confidence: 88 };
+  if (lower.includes("employment") || lower.includes("employee"))
+    return { type: "Employment Agreement", confidence: 85 };
+  if (lower.includes("privacy policy") || lower.includes("personal data"))
+    return { type: "Privacy Policy", confidence: 86 };
+  if (lower.includes("subscription") || lower.includes("saas"))
+    return { type: "Subscription Terms", confidence: 82 };
+  if (lower.includes("freelance") || lower.includes("independent contractor"))
+    return { type: "Freelance Contract", confidence: 84 };
+  if (lower.includes("rental") || lower.includes("lease") || lower.includes("landlord"))
+    return { type: "Rental Agreement", confidence: 83 };
+  if (lower.includes("non-disclosure") || lower.includes("nda"))
+    return { type: "Non-Disclosure Agreement", confidence: 87 };
+  if (lower.includes("vendor") || lower.includes("supplier"))
+    return { type: "Vendor Agreement", confidence: 80 };
+  if (lower.includes("terms of service") || lower.includes("terms and conditions"))
+    return { type: "Terms of Service", confidence: 81 };
+  return { type: "Vendor Agreement", confidence: 72 };
+}
+
 export function generateMockAnalysis(contractText: string): AnalysisResult {
   const trimmed = contractText.trim();
   const wordCount = trimmed ? trimmed.split(/\s+/).length : 0;
@@ -142,10 +176,15 @@ export function generateMockAnalysis(contractText: string): AnalysisResult {
   const riskScores = { low, medium, high };
 
   const clauseCount = hasContent ? Math.min(3 + (seed % 3), SAMPLE_CLAUSES.length) : 2;
+  const docGuess = hasContent
+    ? guessDocumentType(trimmed)
+    : { type: "General Agreement", confidence: 50 };
 
   return {
     riskScores,
     overallRisk: pickOverall(riskScores),
+    documentType: normalizeDocumentType(docGuess.type),
+    documentTypeConfidence: docGuess.confidence,
     riskyClauses: SAMPLE_CLAUSES.slice(0, clauseCount).map((c, i) => ({
       ...c,
       id: `clause-${i}`,

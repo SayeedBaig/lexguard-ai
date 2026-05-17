@@ -15,10 +15,18 @@ const FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-2.5-flash-lite"] as const;
 const SYSTEM_PROMPT = `You are LexGuard, an expert legal contract analyst for a legal-tech SaaS product.
 Analyze the contract text and identify risks, obligations, liabilities, and data privacy issues.
 Be practical and clear — this is for business users, not lawyers only.
+First, detect the document type (e.g. Employment Agreement, Privacy Policy, Vendor Agreement, Subscription Terms, Freelance Contract, Rental Agreement, Master Services Agreement, NDA, Terms of Service) and set documentTypeConfidence (0-100).
 riskScores counts should reflect the number of flagged items at each severity (integers).
 Provide 3-8 risky clauses when material issues exist, otherwise fewer.
+For each risky clause include a concise plain-English explanation (1-2 sentences) of why it matters.
 Always include actionable recommendations for the user signing or negotiating the contract.
-This is not legal advice — analysis assists review only.`;
+This is not legal advice — analysis assists review only.
+
+CRITICAL INSTRUCTIONS FOR CONSISTENCY:
+- 'high' severity: severe financial liability, unlimited indemnification, loss of IP, or immediate termination without cause.
+- 'medium' severity: non-standard auto-renewals, short notice periods, or ambiguous data usage rights.
+- 'low' severity: standard boilerplate clauses that are slightly unfavorable but customary.
+overallRisk MUST be 'high' if there is >= 1 high severity clause, 'medium' if >= 1 medium but no high, and 'low' otherwise.`;
 
 function getModelCandidates(): string[] {
   const primary = process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
@@ -64,7 +72,9 @@ async function generateAnalysis(
       systemInstruction: SYSTEM_PROMPT,
       responseMimeType: "application/json",
       responseJsonSchema: contractAnalysisJsonSchema,
-      temperature: 0.3,
+      temperature: 0.0,
+      topK: 1,
+      topP: 0.1,
     },
   });
 

@@ -29,6 +29,7 @@ export function ContractInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
 
   const readFile = useCallback(
     (file: File) => {
@@ -44,19 +45,56 @@ export function ContractInput({
     [onChange, onFileNameChange],
   );
 
+  const extractPdf = useCallback(
+    async (file: File) => {
+      setUploadError(null);
+      setIsExtracting(true);
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+        
+        const res = await fetch("/api/extract-pdf", {
+          method: "POST",
+          body: formData,
+        });
+        
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || "Failed to extract PDF text");
+        }
+        
+        const data = await res.json();
+        if (data.text) {
+          onChange(data.text);
+          onFileNameChange(file.name);
+        } else {
+          throw new Error("No text could be extracted from this PDF.");
+        }
+      } catch (err) {
+        setUploadError(err instanceof Error ? err.message : "Error reading PDF");
+      } finally {
+        setIsExtracting(false);
+      }
+    },
+    [onChange, onFileNameChange]
+  );
+
   const handleFiles = useCallback(
     (files: FileList | null) => {
       const file = files?.[0];
       if (!file) return;
-      const allowed = [".txt", ".md", ".text"];
+      
       const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
-      if (!allowed.includes(ext)) {
-        setUploadError("Please upload a .txt or .md file for this preview.");
-        return;
+      
+      if (ext === ".pdf") {
+        extractPdf(file);
+      } else if ([".txt", ".md", ".text"].includes(ext)) {
+        readFile(file);
+      } else {
+        setUploadError("Please upload a .txt, .md, or .pdf file for analysis.");
       }
-      readFile(file);
     },
-    [readFile],
+    [readFile, extractPdf],
   );
 
   const onDrop = (e: React.DragEvent) => {
@@ -107,7 +145,7 @@ export function ContractInput({
         <input
           ref={inputRef}
           type="file"
-          accept=".txt,.md,.text"
+          accept=".txt,.md,.text,.pdf"
           className="sr-only"
           aria-describedby="upload-hint"
           onChange={(e) => handleFiles(e.target.files)}
@@ -119,15 +157,16 @@ export function ContractInput({
           <UploadIcon />
         </div>
         <p className="text-sm font-medium text-slate-800">
-          Drag and drop your contract
+          {isExtracting ? "Extracting text from PDF..." : "Drag and drop your contract"}
         </p>
         <p id="upload-hint" className="mt-1 text-xs text-slate-500">
-          Supports .txt and .md — PDF support coming soon
+          Supports .txt, .md, and .pdf
         </p>
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="focus-ring mt-4 inline-flex items-center gap-2 rounded-md border border-blue-200 bg-white px-4 py-2 text-sm font-medium text-blue-700 shadow-sm transition hover:bg-blue-50"
+          disabled={isExtracting}
+          className="focus-ring mt-4 inline-flex items-center gap-2 rounded-md border border-blue-200 bg-white px-4 py-2 text-sm font-medium text-blue-700 shadow-sm transition hover:bg-blue-50 disabled:opacity-50"
         >
           <FileIcon className="h-4 w-4" aria-hidden />
           Browse files

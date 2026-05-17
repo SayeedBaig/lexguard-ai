@@ -14,6 +14,15 @@ export const contractAnalysisJsonSchema = {
       description: "Overall contract risk level",
       enum: ["low", "medium", "high"],
     },
+    documentType: {
+      type: Type.STRING,
+      description:
+        "Detected document category. Prefer: Employment Agreement, Privacy Policy, Vendor Agreement, Subscription Terms, Freelance Contract, Rental Agreement, Master Services Agreement, Non-Disclosure Agreement, Terms of Service, Lease Agreement, Partnership Agreement, or Other with a short custom label.",
+    },
+    documentTypeConfidence: {
+      type: Type.NUMBER,
+      description: "Confidence 0-100 that documentType is correct",
+    },
     riskScores: {
       type: Type.OBJECT,
       properties: {
@@ -34,11 +43,16 @@ export const contractAnalysisJsonSchema = {
         properties: {
           title: { type: Type.STRING },
           excerpt: { type: Type.STRING },
+          explanation: {
+            type: Type.STRING,
+            description:
+              "1-2 sentence plain-English explanation of why this clause is risky",
+          },
           severity: riskLevelSchema,
           category: { type: Type.STRING },
           lineRef: { type: Type.STRING },
         },
-        required: ["title", "excerpt", "severity", "category"],
+        required: ["title", "excerpt", "explanation", "severity", "category"],
       },
     },
     obligations: {
@@ -104,6 +118,8 @@ export const contractAnalysisJsonSchema = {
   },
   required: [
     "overallRisk",
+    "documentType",
+    "documentTypeConfidence",
     "riskScores",
     "plainEnglish",
     "riskyClauses",

@@ -1,20 +1,16 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { AnalysisResult } from "@/lib/types";
 import { fetchContractAnalysis } from "@/lib/analyzeClient";
-import { riskConfig } from "@/lib/riskStyles";
+import { TEMPLATE_STORAGE_KEY } from "@/lib/templates";
 import { AIFindingsSidebar } from "./AIFindingsSidebar";
 import { AnalysisErrorBanner } from "./AnalysisErrorBanner";
+import { AnalysisResults } from "./AnalysisResults";
+import { AppShell } from "./AppShell";
 import { ContractInput } from "./ContractInput";
 import { LoadingOverlay } from "./LoadingOverlay";
-import { Navbar } from "./Navbar";
-import { ObligationsSection } from "./ObligationsSection";
-import { PlainEnglishSection } from "./PlainEnglishSection";
-import { PrivacyConcernsSection } from "./PrivacyConcernsSection";
-import { RecommendationsSection } from "./RecommendationsSection";
-import { RiskScoreCards } from "./RiskScoreCards";
-import { RiskyClausesPanel } from "./RiskyClausesPanel";
+import { saveHistoryItem, RESTORE_HISTORY_KEY, HistoryItem } from "@/lib/history";
 
 const DEMO_TEXT = `MASTER SERVICES AGREEMENT
 
@@ -50,6 +46,12 @@ export function Dashboard() {
       const analysis = await fetchContractAnalysis(text);
       setResult(analysis);
       setHasAnalyzed(true);
+      
+      saveHistoryItem({
+        contractText: text,
+        fileName: fileName,
+        result: analysis,
+      });
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Analysis failed. Please try again.",
@@ -58,7 +60,7 @@ export function Dashboard() {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [contractText]);
+  }, [contractText, fileName]);
 
   const loadDemo = () => {
     setContractText(DEMO_TEXT);
@@ -66,17 +68,37 @@ export function Dashboard() {
     setError(null);
   };
 
-  const overallCfg = result ? riskConfig[result.overallRisk] : null;
+  useEffect(() => {
+    const stored = sessionStorage.getItem(TEMPLATE_STORAGE_KEY);
+    if (stored) {
+      setContractText(stored);
+      setFileName("Template");
+      sessionStorage.removeItem(TEMPLATE_STORAGE_KEY);
+      return;
+    }
+
+    const restoreHistoryStr = sessionStorage.getItem(RESTORE_HISTORY_KEY);
+    if (restoreHistoryStr) {
+      try {
+        const item = JSON.parse(restoreHistoryStr) as HistoryItem;
+        setContractText(item.contractText);
+        setFileName(item.fileName);
+        setResult(item.result);
+        setHasAnalyzed(true);
+      } catch (err) {
+        console.error("Failed to restore history", err);
+      }
+      sessionStorage.removeItem(RESTORE_HISTORY_KEY);
+    }
+  }, []);
 
   return (
-    <div className="page-texture relative flex min-h-screen flex-col">
+    <AppShell>
       {isAnalyzing && <LoadingOverlay />}
-
-      <Navbar />
 
       <main
         id="main-content"
-        className="relative mx-auto w-full max-w-[1600px] flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-8"
+        className="relative flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-8"
       >
         <div className="mb-10 flex flex-col gap-6 border-b border-slate-200 pb-8 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
@@ -99,7 +121,7 @@ export function Dashboard() {
         </div>
 
         <div className="grid gap-8 lg:grid-cols-[1fr_360px] xl:grid-cols-[1fr_400px]">
-          <div className="space-y-6">
+          <div className="space-y-8">
             {error && (
               <AnalysisErrorBanner
                 message={error}
@@ -117,54 +139,14 @@ export function Dashboard() {
               hasContent={contractText.trim().length > 0}
             />
 
-            {hasAnalyzed && result && (
-              <section aria-labelledby="results-heading" className="space-y-5">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h2
-                    id="results-heading"
-                    className="text-sm font-semibold text-slate-900"
-                  >
-                    Analysis results
-                  </h2>
-                  {overallCfg && (
-                    <span
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${overallCfg.border} ${overallCfg.bg} ${overallCfg.color}`}
-                    >
-                      Overall risk: {overallCfg.label}
-                    </span>
-                  )}
-                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
-                    Gemini AI
-                  </span>
-                </div>
-                <RiskScoreCards
-                  scores={result.riskScores}
-                  overallRisk={result.overallRisk}
-                  visible={hasAnalyzed && !isAnalyzing}
-                />
-              </section>
+            {result && (
+              <AnalysisResults
+                result={result}
+                visible={hasAnalyzed}
+                isAnalyzing={isAnalyzing}
+                contractLabel={fileName}
+              />
             )}
-
-            <RecommendationsSection
-              recommendations={result?.recommendations ?? []}
-              visible={hasAnalyzed && !!result}
-            />
-            <RiskyClausesPanel
-              clauses={result?.riskyClauses ?? []}
-              visible={hasAnalyzed && !!result}
-            />
-            <PrivacyConcernsSection
-              concerns={result?.privacyConcerns ?? []}
-              visible={hasAnalyzed && !!result}
-            />
-            <PlainEnglishSection
-              summary={result?.plainEnglish ?? ""}
-              visible={hasAnalyzed && !!result}
-            />
-            <ObligationsSection
-              items={result?.obligations ?? []}
-              visible={hasAnalyzed && !!result}
-            />
           </div>
 
           <AIFindingsSidebar
@@ -175,13 +157,6 @@ export function Dashboard() {
           />
         </div>
       </main>
-
-      <footer className="border-t border-slate-200 bg-white py-6">
-        <p className="text-center text-xs text-slate-500">
-          © {new Date().getFullYear()} LexGuard · AI-assisted contract review —
-          not legal advice. Consult qualified counsel before signing.
-        </p>
-      </footer>
-    </div>
+    </AppShell>
   );
 }

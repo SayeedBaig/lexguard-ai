@@ -10,6 +10,7 @@ export interface RiskyClause {
   id: string;
   title: string;
   excerpt: string;
+  explanation: string;
   severity: RiskLevel;
   category: string;
   lineRef?: string;
@@ -48,6 +49,9 @@ export interface Recommendation {
 export interface AnalysisResult {
   riskScores: RiskScores;
   overallRisk: RiskLevel;
+  /** AI-detected contract or document category */
+  documentType: string;
+  documentTypeConfidence: number;
   riskyClauses: RiskyClause[];
   plainEnglish: string;
   obligations: ObligationItem[];
@@ -61,11 +65,14 @@ export interface AnalysisResult {
 /** Raw JSON shape returned by Gemini */
 export interface GeminiAnalysisPayload {
   overallRisk: RiskLevel;
+  documentType: string;
+  documentTypeConfidence: number;
   riskScores: RiskScores;
   plainEnglish: string;
   riskyClauses: Array<{
     title: string;
     excerpt: string;
+    explanation: string;
     severity: RiskLevel;
     category: string;
     lineRef?: string;

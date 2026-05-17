@@ -24,7 +24,7 @@ export function RiskScoreCards({
         visible ? "opacity-100" : "opacity-50"
       }`}
       role="group"
-      aria-label="Risk score summary"
+      aria-label="Severity breakdown"
     >
       {levels.map((level) => {
         const cfg = riskConfig[level];
@@ -35,49 +35,56 @@ export function RiskScoreCards({
         return (
           <article
             key={level}
-            className={`card rounded-xl p-5 transition-shadow ${
-              isOverall ? "card-highlight ring-2 ring-blue-200" : "hover:shadow-md"
+            className={`relative overflow-hidden rounded-xl border bg-white p-5 transition-shadow ${
+              isOverall
+                ? `ring-2 ${cfg.border} shadow-md`
+                : "border-slate-200 hover:shadow-md"
             }`}
-            aria-label={`${cfg.label} risk: ${count} items`}
+            aria-label={`${cfg.label} severity: ${count} items`}
           >
             {isOverall && (
-              <span className="mb-3 inline-block rounded-md bg-blue-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700">
-                Primary risk level
+              <span className="absolute right-3 top-3 rounded-md bg-white/90 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700 shadow-sm ring-1 ring-blue-100">
+                Primary
               </span>
             )}
-            <div className="flex items-start justify-between gap-3">
+
+            <div className="flex items-center gap-3">
+              <div
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${cfg.iconBg}`}
+                aria-hidden
+              >
+                <SeverityBars level={level} barClass={cfg.bar} />
+              </div>
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
-                  {cfg.label} risk
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  {cfg.label}
                 </p>
                 <p
-                  className={`mt-1 text-3xl font-semibold tabular-nums tracking-tight ${cfg.color}`}
+                  className={`text-3xl font-bold tabular-nums tracking-tight ${cfg.color}`}
                 >
                   {count}
                 </p>
               </div>
-              <div
-                className={`flex h-11 w-11 items-center justify-center rounded-lg ${cfg.iconBg}`}
-                aria-hidden
-              >
-                <RiskBar level={level} barClass={cfg.bar} />
-              </div>
             </div>
-            <div className="mt-5">
-              <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+
+            <div className="mt-5 space-y-2">
+              <div className="flex justify-between text-xs">
+                <span className="text-slate-500">Share of flags</span>
+                <span className={`font-semibold tabular-nums ${cfg.color}`}>
+                  {pct}%
+                </span>
+              </div>
+              <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
                 <div
-                  className={`h-full rounded-full transition-all duration-700 ${cfg.bar}`}
+                  className={`h-full rounded-full transition-all duration-700 ease-out ${cfg.bar}`}
                   style={{ width: visible ? `${pct}%` : "0%" }}
                   role="progressbar"
                   aria-valuenow={pct}
                   aria-valuemin={0}
                   aria-valuemax={100}
-                  aria-label={`${pct}% of flagged items`}
+                  aria-label={`${pct}% of flagged provisions`}
                 />
               </div>
-              <p className="mt-2 text-xs text-slate-500">
-                {pct}% of flagged provisions
-              </p>
             </div>
           </article>
         );
@@ -86,16 +93,22 @@ export function RiskScoreCards({
   );
 }
 
-function RiskBar({ level, barClass }: { level: RiskLevel; barClass: string }) {
+function SeverityBars({
+  level,
+  barClass,
+}: {
+  level: RiskLevel;
+  barClass: string;
+}) {
   const heights =
-    level === "low" ? [40, 55, 35] : level === "medium" ? [55, 70, 50] : [70, 90, 65];
+    level === "low" ? [35, 50, 30] : level === "medium" ? [50, 70, 45] : [65, 90, 55];
 
   return (
-    <div className="flex h-7 items-end gap-0.5">
+    <div className="flex h-7 items-end gap-1">
       {heights.map((h, i) => (
         <span
           key={i}
-          className={`w-1 rounded-sm ${barClass} opacity-90`}
+          className={`w-1.5 rounded-sm ${barClass}`}
           style={{ height: `${h}%` }}
         />
       ))}

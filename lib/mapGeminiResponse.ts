@@ -1,3 +1,7 @@
+import {
+  clampTypeConfidence,
+  normalizeDocumentType,
+} from "./contractCategories";
 import type {
   AnalysisResult,
   GeminiAnalysisPayload,
@@ -29,6 +33,9 @@ export function mapGeminiToAnalysisResult(
     id: uid("clause", i),
     title: c.title || "Flagged clause",
     excerpt: c.excerpt || "",
+    explanation:
+      c.explanation?.trim() ||
+      "Review this provision with counsel — it may create unfavorable obligations or exposure.",
     severity: normalizeRisk(c.severity),
     category: c.category || "General",
     lineRef: c.lineRef,
@@ -52,6 +59,10 @@ export function mapGeminiToAnalysisResult(
 
   return {
     overallRisk: normalizeRisk(payload.overallRisk),
+    documentType: normalizeDocumentType(payload.documentType),
+    documentTypeConfidence: clampTypeConfidence(
+      Number(payload.documentTypeConfidence),
+    ),
     riskScores: {
       low: Math.max(0, Number(scores.low) || 0),
       medium: Math.max(0, Number(scores.medium) || 0),
