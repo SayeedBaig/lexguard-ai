@@ -1,10 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { analyzeContractWithGemini } from "@/lib/gemini";
+import { verifyRequestAuth } from "@/lib/apiAuth";
 
 export const maxDuration = 60;
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
+    const user = await verifyRequestAuth(request);
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const contractText =
       typeof body.contractText === "string" ? body.contractText : "";

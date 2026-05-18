@@ -11,6 +11,7 @@ import { AppShell } from "./AppShell";
 import { ContractInput } from "./ContractInput";
 import { LoadingOverlay } from "./LoadingOverlay";
 import { saveHistoryItem, RESTORE_HISTORY_KEY, HistoryItem } from "@/lib/history";
+import { useAuth } from "../context/AuthContext";
 
 const DEMO_TEXT = `MASTER SERVICES AGREEMENT
 
@@ -23,6 +24,7 @@ const DEMO_TEXT = `MASTER SERVICES AGREEMENT
 5.3 Data. Provider may process Customer Data for product improvement, analytics, and machine learning model training.`;
 
 export function Dashboard() {
+  const { token } = useAuth();
   const [contractText, setContractText] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -43,7 +45,7 @@ export function Dashboard() {
     setIsAnalyzing(true);
 
     try {
-      const analysis = await fetchContractAnalysis(text);
+      const analysis = await fetchContractAnalysis(text, token);
       setResult(analysis);
       setHasAnalyzed(true);
       
@@ -137,6 +139,7 @@ export function Dashboard() {
               fileName={fileName}
               onFileNameChange={setFileName}
               hasContent={contractText.trim().length > 0}
+              token={token}
             />
 
             {result && (

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ShieldIcon } from "./icons";
+import { useAuth } from "../context/AuthContext";
+import { auth } from "@/lib/firebase";
 
 const navItems = [
   { href: "/", label: "Dashboard" },
@@ -12,6 +14,7 @@ const navItems = [
 
 export function Navbar() {
   const pathname = usePathname();
+  const { user } = useAuth();
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/90 backdrop-blur-md supports-[backdrop-filter]:bg-white/80">
@@ -58,11 +61,10 @@ export function Navbar() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`focus-ring rounded-md px-2.5 py-2 text-sm font-medium transition-colors md:px-3.5 ${
-                  isActive
+                className={`focus-ring rounded-md px-2.5 py-2 text-sm font-medium transition-colors md:px-3.5 ${isActive
                     ? "bg-blue-50 text-blue-700"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                }`}
+                  }`}
                 aria-current={isActive ? "page" : undefined}
               >
                 {item.label}
@@ -79,15 +81,32 @@ export function Navbar() {
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden />
             AI engine online
           </span>
-          <button type="button" className="btn-secondary hidden sm:inline-flex">
-            Sign in
-          </button>
-          <button
-            type="button"
-            className="btn-primary !px-4 !py-2 text-sm sm:hidden"
-          >
-            Sign in
-          </button>
+          {user ? (
+            <button
+              type="button"
+              onClick={() => auth.signOut()}
+              className="btn-secondary hidden sm:inline-flex"
+            >
+              Sign out
+            </button>
+          ) : (
+            <Link href="/login" className="btn-secondary hidden sm:inline-flex">
+              Sign in
+            </Link>
+          )}
+          {user ? (
+            <button
+              type="button"
+              onClick={() => auth.signOut()}
+              className="btn-primary !px-4 !py-2 text-sm sm:hidden"
+            >
+              Sign in
+            </button>
+          ) : (
+            <Link href="/login" className="btn-primary !px-4 !py-2 text-sm sm:hidden">
+              Sign in
+            </Link>
+          )}
         </div>
       </div>
     </header>

@@ -15,6 +15,7 @@ interface ContractInputProps {
   fileName: string | null;
   onFileNameChange: (name: string | null) => void;
   hasContent?: boolean;
+  token?: string | null;
 }
 
 export function ContractInput({
@@ -25,6 +26,7 @@ export function ContractInput({
   fileName,
   onFileNameChange,
   hasContent = false,
+  token = null,
 }: ContractInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -53,8 +55,14 @@ export function ContractInput({
         const formData = new FormData();
         formData.append("file", file);
         
+        const headers: Record<string, string> = {};
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+        
         const res = await fetch("/api/extract-pdf", {
           method: "POST",
+          headers,
           body: formData,
         });
         
@@ -76,7 +84,7 @@ export function ContractInput({
         setIsExtracting(false);
       }
     },
-    [onChange, onFileNameChange]
+    [onChange, onFileNameChange, token]
   );
 
   const handleFiles = useCallback(

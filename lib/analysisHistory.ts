@@ -47,7 +47,7 @@ export function saveAnalysisToHistory(
     `Analysis · ${new Date(result.analyzedAt).toLocaleString()}`;
 
   const entry: HistoryEntry = {
-    id: crypto.randomUUID(),
+    id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15) + Date.now().toString(36),
     label,
     contractType: options.contractType ?? "general",
     contractPreview: trimmed.slice(0, 280),
