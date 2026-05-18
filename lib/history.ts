@@ -1,6 +1,5 @@
 import { AnalysisResult } from "./types";
 
-export const HISTORY_STORAGE_KEY = "lexguard_history";
 export const RESTORE_HISTORY_KEY = "lexguard_restore_history";
 
 export interface HistoryItem {
@@ -11,32 +10,50 @@ export interface HistoryItem {
   timestamp: string;
 }
 
-export function getHistory(): HistoryItem[] {
-  if (typeof window === "undefined") return [];
-  const stored = localStorage.getItem(HISTORY_STORAGE_KEY);
-  if (!stored) return [];
-  try {
-    return JSON.parse(stored) as HistoryItem[];
-  } catch (err) {
-    console.error("Failed to parse history from localStorage", err);
-    return [];
+export async function getHistory(token: string): Promise<HistoryItem[]> {
+  const response = await fetch("/api/history", {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch history");
+  }
+
+  return response.json();
+}
+
+export async function saveHistoryItem(
+  item: Omit<HistoryItem, "id" | "timestamp">,
+  token: string
+): Promise<HistoryItem> {
+  const response = await fetch("/api/history", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(item),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to save history");
+  }
+
+  return response.json();
+}
+
+export async function deleteHistoryItem(id: string, token: string): Promise<void> {
+  const response = await fetch(`/api/history/${id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to delete history");
   }
 }
 
-export function saveHistoryItem(item: Omit<HistoryItem, "id" | "timestamp">): HistoryItem {
-  const history = getHistory();
-  const newItem: HistoryItem = {
-    ...item,
-    id: typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 15) + Date.now().toString(36),
-    timestamp: new Date().toISOString(),
-  };
-  const updatedHistory = [newItem, ...history];
-  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updatedHistory));
-  return newItem;
-}
-
-export function deleteHistoryItem(id: string): void {
-  const history = getHistory();
-  const updatedHistory = history.filter((item) => item.id !== id);
-  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updatedHistory));
-}

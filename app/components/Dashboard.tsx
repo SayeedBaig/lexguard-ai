@@ -49,11 +49,13 @@ export function Dashboard() {
       setResult(analysis);
       setHasAnalyzed(true);
       
-      saveHistoryItem({
-        contractText: text,
-        fileName: fileName,
-        result: analysis,
-      });
+      if (token) {
+        saveHistoryItem({
+          contractText: text,
+          fileName: fileName,
+          result: analysis,
+        }, token).catch(e => console.error("Failed to save history", e));
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Analysis failed. Please try again.",

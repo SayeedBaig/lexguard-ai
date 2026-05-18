@@ -11,25 +11,39 @@ import {
 import { riskConfig } from "@/lib/riskStyles";
 import { RiskBadge } from "./results/RiskBadge";
 import { ClipboardIcon, TrashIcon, ArrowRightIcon } from "./icons";
+import { useAuth } from "../context/AuthContext";
 
 export function HistoryView() {
   const router = useRouter();
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [mounted, setMounted] = useState(false);
 
+  const { token } = useAuth();
+
   useEffect(() => {
-    setHistory(getHistory());
-    setMounted(true);
-  }, []);
+    if (token) {
+      getHistory(token)
+        .then(data => setHistory(data))
+        .catch(err => console.error(err))
+        .finally(() => setMounted(true));
+    } else {
+      setMounted(true);
+    }
+  }, [token]);
 
   const handleOpen = (item: HistoryItem) => {
     sessionStorage.setItem(RESTORE_HISTORY_KEY, JSON.stringify(item));
     router.push("/");
   };
 
-  const handleDelete = (id: string) => {
-    deleteHistoryItem(id);
-    setHistory(getHistory());
+  const handleDelete = async (id: string) => {
+    if (!token) return;
+    try {
+      await deleteHistoryItem(id, token);
+      setHistory((prev) => prev.filter((item) => item.id !== id));
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   if (!mounted) {
