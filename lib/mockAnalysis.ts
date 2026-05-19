@@ -135,7 +135,8 @@ function hashText(text: string): number {
   return Math.abs(h);
 }
 
-function pickOverall(scores: { low: number; medium: number; high: number }): RiskLevel {
+function pickOverall(scores: { low: number; medium: number; high: number; critical: number }): RiskLevel {
+  if (scores.critical > 0) return "critical";
   if (scores.high >= scores.medium && scores.high >= scores.low) return "high";
   if (scores.medium >= scores.low) return "medium";
   return "low";
@@ -173,7 +174,8 @@ export function generateMockAnalysis(contractText: string): AnalysisResult {
   const high = hasContent ? 3 + (seed % 4) : 1;
   const medium = hasContent ? 4 + (seed % 3) : 2;
   const low = hasContent ? 2 + (seed % 5) : 3;
-  const riskScores = { low, medium, high };
+  const critical = hasContent ? (seed % 2) : 0;
+  const riskScores = { low, medium, high, critical };
 
   const clauseCount = hasContent ? Math.min(3 + (seed % 3), SAMPLE_CLAUSES.length) : 2;
   const docGuess = hasContent
@@ -227,6 +229,9 @@ export function generateMockAnalysis(contractText: string): AnalysisResult {
       : [],
     analyzedAt: new Date().toISOString(),
     wordCount,
+    riskScore: hasContent ? 75 + (seed % 20) : 40,
+    confidence: docGuess.confidence,
+    riskCategories: ["Liability", "Term", "Indemnity", "Governance", "Privacy"],
   };
 }
 

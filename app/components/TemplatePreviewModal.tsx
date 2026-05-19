@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import type { ContractTemplate } from "@/lib/templates";
-import { TEMPLATE_STORAGE_KEY } from "@/lib/templates";
+import { TEMPLATE_STORAGE_KEY, TEMPLATE_TITLE_KEY } from "@/lib/templates";
 import { riskConfig } from "@/lib/riskStyles";
 import { RiskBadge } from "./results/RiskBadge";
 
@@ -23,6 +23,7 @@ export function TemplatePreviewModal({
 
   const handleUseTemplate = () => {
     sessionStorage.setItem(TEMPLATE_STORAGE_KEY, template.body);
+    sessionStorage.setItem(TEMPLATE_TITLE_KEY, template.title);
     onClose();
     router.push("/");
   };

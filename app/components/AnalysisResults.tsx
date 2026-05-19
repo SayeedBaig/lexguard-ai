@@ -11,11 +11,13 @@ import { ObligationsSection } from "./ObligationsSection";
 import { LiabilitiesSection } from "./LiabilitiesSection";
 import { DownloadReportButton } from "./DownloadReportButton";
 import { ContractCategoryCard } from "./ContractCategoryCard";
+import { HighlightedContract } from "./HighlightedContract";
 
 interface AnalysisResultsProps {
   result: AnalysisResult;
   visible: boolean;
   isAnalyzing: boolean;
+  contractText: string;
   contractLabel?: string | null;
 }
 
@@ -23,6 +25,7 @@ export function AnalysisResults({
   result,
   visible,
   isAnalyzing,
+  contractText,
   contractLabel,
 }: AnalysisResultsProps) {
   if (!visible) return null;
@@ -60,6 +63,8 @@ export function AnalysisResults({
         recommendations={result.recommendations}
         visible
       />
+
+      <HighlightedContract contractText={contractText} result={result} />
 
       <RiskyClausesPanel clauses={result.riskyClauses} visible />
 

@@ -156,3 +156,4 @@ export function getTemplateById(id: string): ContractTemplate | undefined {
 }
 
 export const TEMPLATE_STORAGE_KEY = "lexguard-template-load";
+export const TEMPLATE_TITLE_KEY = "lexguard-template-title";

@@ -26,6 +26,13 @@ export const reportRisk: Record<
     bg: "#fef2f2",
     border: "#fca5a5",
   },
+  critical: {
+    label: "Critical",
+    riskLabel: "Critical risk",
+    color: "#7f1d1d",
+    bg: "#fef2f2",
+    border: "#f87171",
+  },
 };
 
 export const reportStyles = `

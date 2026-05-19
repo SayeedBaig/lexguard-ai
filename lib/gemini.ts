@@ -3,6 +3,57 @@ import type { GeminiAnalysisPayload } from "./types";
 import { mapGeminiToAnalysisResult } from "./mapGeminiResponse";
 import type { AnalysisResult } from "./types";
 import { contractAnalysisJsonSchema } from "./geminiSchema";
+import { z } from "zod";
+
+const RiskLevelSchema = z.enum(["low", "medium", "high", "critical"]);
+
+const GeminiResponseSchema = z.object({
+  overallRisk: RiskLevelSchema.catch("medium"),
+  documentType: z.string().catch("Unknown Document"),
+  documentTypeConfidence: z.number().catch(50),
+  riskScores: z.object({
+    low: z.number().catch(0),
+    medium: z.number().catch(0),
+    high: z.number().catch(0),
+    critical: z.number().catch(0),
+  }).catch({ low: 0, medium: 0, high: 0, critical: 0 }),
+  plainEnglish: z.string().catch("Analysis unavailable."),
+  riskyClauses: z.array(z.object({
+    title: z.string().catch("Flagged clause"),
+    excerpt: z.string().catch(""),
+    explanation: z.string().catch("Needs review"),
+    severity: RiskLevelSchema.catch("medium"),
+    category: z.string().catch("General"),
+    lineRef: z.string().optional()
+  })).catch([]),
+  obligations: z.array(z.object({ text: z.string(), party: z.string().optional() })).catch([]),
+  liabilities: z.array(z.object({ text: z.string(), party: z.string().optional() })).catch([]),
+  privacyConcerns: z.array(z.object({
+    title: z.string().catch("Privacy Concern"),
+    description: z.string().catch("Review for privacy risks"),
+    severity: RiskLevelSchema.catch("medium")
+  })).catch([]),
+  recommendations: z.array(z.object({
+    title: z.string().catch("Recommendation"),
+    description: z.string().catch("Review contract"),
+    priority: RiskLevelSchema.catch("medium")
+  })).catch([]),
+  findings: z.array(z.object({
+    title: z.string().catch("Finding"),
+    description: z.string().catch(""),
+    confidence: z.number().catch(50),
+    tag: z.string().catch("General"),
+    severity: RiskLevelSchema.catch("medium")
+  })).catch([]),
+  riskScore: z.number().catch(50),
+  confidence: z.number().catch(50),
+  riskCategories: z.array(z.string()).catch(["General"]),
+});
+
+function extractJsonFallback(text: string): string {
+  const match = text.match(/\{[\s\S]*\}/);
+  return match ? match[0] : text;
+}
 
 const MAX_CONTRACT_CHARS = 80_000;
 
@@ -10,7 +61,14 @@ const MAX_CONTRACT_CHARS = 80_000;
 export const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 
 /** Fallback if the primary model is unavailable for this API key/region. */
-const FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-2.5-flash-lite"] as const;
+const FALLBACK_MODELS = [
+  "gemini-2.0-flash", 
+  "gemini-2.5-flash-lite", 
+  "gemini-1.5-pro", 
+  "gemini-1.5-flash"
+] as const;
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const SYSTEM_PROMPT = `You are LexGuard, an expert legal contract analyst for a legal-tech SaaS product.
 Analyze the contract text and identify risks, obligations, liabilities, and data privacy issues.
@@ -23,10 +81,12 @@ Always include actionable recommendations for the user signing or negotiating th
 This is not legal advice — analysis assists review only.
 
 CRITICAL INSTRUCTIONS FOR CONSISTENCY:
+- 'critical' severity: illegal clauses, extreme liability without cap, or blatant violations of privacy laws.
 - 'high' severity: severe financial liability, unlimited indemnification, loss of IP, or immediate termination without cause.
 - 'medium' severity: non-standard auto-renewals, short notice periods, or ambiguous data usage rights.
 - 'low' severity: standard boilerplate clauses that are slightly unfavorable but customary.
-overallRisk MUST be 'high' if there is >= 1 high severity clause, 'medium' if >= 1 medium but no high, and 'low' otherwise.`;
+overallRisk MUST be 'critical' if >= 1 critical severity clause, 'high' if there is >= 1 high severity clause, 'medium' if >= 1 medium but no high, and 'low' otherwise.
+You must also provide an overall riskScore (0-100), an overall confidence percentage (0-100), and an array of riskCategories strings summarizing the main areas of risk (e.g., "Liability", "Data Privacy", "Auto-Renewal").`;
 
 function getModelCandidates(): string[] {
   const primary = process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
@@ -34,18 +94,51 @@ function getModelCandidates(): string[] {
   return [...new Set(candidates)];
 }
 
-function isModelNotFoundError(error: unknown): boolean {
+function shouldFallbackModel(error: unknown): boolean {
   if (error instanceof ApiError) {
     const msg = error.message.toLowerCase();
     return (
       error.status === 404 ||
+      error.status === 503 ||
+      error.status === 429 ||
       msg.includes("not found") ||
-      msg.includes("is not supported")
+      msg.includes("is not supported") ||
+      msg.includes("overloaded") ||
+      msg.includes("high demand")
     );
   }
   if (error instanceof Error) {
     const msg = error.message.toLowerCase();
-    return msg.includes("not found") || msg.includes("is not supported");
+    return (
+      msg.includes("not found") ||
+      msg.includes("is not supported") ||
+      msg.includes("503") ||
+      msg.includes("429") ||
+      msg.includes("overloaded") ||
+      msg.includes("high demand")
+    );
+  }
+  return false;
+}
+
+function isRetryableError(error: unknown): boolean {
+  if (error instanceof ApiError) {
+    const msg = error.message.toLowerCase();
+    return (
+      error.status === 503 ||
+      error.status === 429 ||
+      msg.includes("overloaded") ||
+      msg.includes("high demand")
+    );
+  }
+  if (error instanceof Error) {
+    const msg = error.message.toLowerCase();
+    return (
+      msg.includes("503") ||
+      msg.includes("429") ||
+      msg.includes("overloaded") ||
+      msg.includes("high demand")
+    );
   }
   return false;
 }
@@ -109,23 +202,42 @@ export async function analyzeContractWithGemini(
   const ai = new GoogleGenAI({ apiKey });
   const models = getModelCandidates();
   let lastError: unknown;
+  const maxRetries = 2; // Maximum retries per model
 
   for (const model of models) {
-    try {
-      const raw = await generateAnalysis(ai, model, trimmed);
-      let payload: GeminiAnalysisPayload;
+    let attempt = 0;
+    while (attempt <= maxRetries) {
       try {
-        payload = JSON.parse(raw) as GeminiAnalysisPayload;
-      } catch {
-        throw new Error("Failed to parse AI response. Please try again.");
+        const raw = await generateAnalysis(ai, model, trimmed);
+        let payload: any;
+        try {
+          payload = JSON.parse(raw);
+        } catch {
+          const fallbackRaw = extractJsonFallback(raw);
+          try {
+            payload = JSON.parse(fallbackRaw);
+          } catch {
+            throw new Error("Failed to parse AI response. The response was malformed.");
+          }
+        }
+        
+        const validatedPayload = GeminiResponseSchema.parse(payload) as GeminiAnalysisPayload;
+        return mapGeminiToAnalysisResult(validatedPayload, trimmed);
+      } catch (error) {
+        lastError = error;
+        
+        if (isRetryableError(error) && attempt < maxRetries) {
+          attempt++;
+          await delay(1500 * attempt); // Wait 1.5s, then 3s, etc. before retrying
+          continue; // Retry the same model
+        }
+        
+        if (shouldFallbackModel(error)) {
+          break; // Stop retrying this model, proceed to the next fallback model
+        }
+        
+        throw new Error(formatApiError(error));
       }
-      return mapGeminiToAnalysisResult(payload, trimmed);
-    } catch (error) {
-      lastError = error;
-      if (isModelNotFoundError(error)) {
-        continue;
-      }
-      throw new Error(formatApiError(error));
     }
   }
 

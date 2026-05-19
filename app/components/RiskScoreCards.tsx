@@ -9,18 +9,18 @@ interface RiskScoreCardsProps {
   visible: boolean;
 }
 
-const levels: RiskLevel[] = ["low", "medium", "high"];
+const levels: RiskLevel[] = ["low", "medium", "high", "critical"];
 
 export function RiskScoreCards({
   scores,
   overallRisk,
   visible,
 }: RiskScoreCardsProps) {
-  const total = scores.low + scores.medium + scores.high;
+  const total = scores.low + scores.medium + scores.high + (scores.critical || 0);
 
   return (
     <div
-      className={`grid gap-4 transition-opacity duration-500 sm:grid-cols-3 ${
+      className={`grid gap-4 transition-opacity duration-500 sm:grid-cols-2 lg:grid-cols-4 ${
         visible ? "opacity-100" : "opacity-50"
       }`}
       role="group"
@@ -101,7 +101,7 @@ function SeverityBars({
   barClass: string;
 }) {
   const heights =
-    level === "low" ? [35, 50, 30] : level === "medium" ? [50, 70, 45] : [65, 90, 55];
+    level === "low" ? [35, 50, 30] : level === "medium" ? [50, 70, 45] : level === "high" ? [65, 90, 55] : [80, 100, 75];
 
   return (
     <div className="flex h-7 items-end gap-1">

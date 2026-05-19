@@ -5,18 +5,20 @@ export function computeOverallRiskScore(
   scores: RiskScores,
   overallRisk: RiskLevel,
 ): number {
-  const total = scores.low + scores.medium + scores.high;
+  const total = scores.low + scores.medium + scores.high + (scores.critical || 0);
   if (total === 0) {
+    if (overallRisk === "critical") return 95;
     if (overallRisk === "high") return 78;
     if (overallRisk === "medium") return 52;
     return 24;
   }
   const weighted =
-    scores.high * 100 + scores.medium * 58 + scores.low * 18;
+    (scores.critical || 0) * 120 + scores.high * 100 + scores.medium * 58 + scores.low * 18;
   return Math.min(100, Math.max(0, Math.round(weighted / total)));
 }
 
 export function riskScoreLabel(score: number): string {
+  if (score >= 90) return "Critical";
   if (score >= 70) return "Elevated";
   if (score >= 45) return "Moderate";
   return "Favorable";

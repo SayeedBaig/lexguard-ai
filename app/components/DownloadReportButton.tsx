@@ -2,11 +2,8 @@
 
 import { useCallback, useState } from "react";
 import type { AnalysisResult } from "@/lib/types";
-import {
-  downloadRiskReportHtml,
-  printRiskReport,
-} from "@/lib/report/downloadRiskReport";
-import { DownloadIcon, PrintIcon } from "./icons";
+import { generatePdfReport } from "@/lib/report/downloadPdfReport";
+import { PrintIcon, DownloadIcon } from "./icons";
 
 interface DownloadReportButtonProps {
   result: AnalysisResult;
@@ -21,13 +18,9 @@ export function DownloadReportButton({
   const label = contractLabel?.trim() || undefined;
 
   const handleDownload = useCallback(() => {
-    downloadRiskReportHtml(result, label);
+    generatePdfReport(result, label);
     setStatus("downloaded");
     window.setTimeout(() => setStatus("idle"), 3000);
-  }, [result, label]);
-
-  const handlePrint = useCallback(() => {
-    printRiskReport(result, label);
   }, [result, label]);
 
   return (
@@ -39,8 +32,8 @@ export function DownloadReportButton({
             Download risk report
           </h3>
           <p className="mt-1 max-w-md text-sm text-slate-600">
-            Save a professional HTML report with scores, clauses, and
-            recommendations. Use Print to export as PDF.
+            Save a professional PDF report with scores, clauses, and
+            recommendations.
           </p>
         </div>
 
@@ -51,15 +44,7 @@ export function DownloadReportButton({
             className="btn-primary min-w-[160px]"
           >
             <DownloadIcon className="h-4 w-4 shrink-0" aria-hidden />
-            {status === "downloaded" ? "Downloaded!" : "Download Report"}
-          </button>
-          <button
-            type="button"
-            onClick={handlePrint}
-            className="btn-secondary inline-flex items-center justify-center gap-2"
-          >
-            <PrintIcon className="h-4 w-4 shrink-0" aria-hidden />
-            Print / Save PDF
+            {status === "downloaded" ? "Downloaded!" : "Download PDF"}
           </button>
         </div>
       </div>

@@ -100,7 +100,11 @@ export function HistoryView() {
             </div>
 
             <h3 className="text-lg font-semibold text-slate-900 line-clamp-1">
-              {item.fileName || result.documentType || "Untitled Analysis"}
+              {item.fileName && !["Template", "Document", "Untitled"].includes(item.fileName)
+                ? item.fileName
+                : result.documentType
+                  ? `${result.documentType} Analysis`
+                  : `Contract Analysis`}
             </h3>
             <p className="mt-1 text-xs text-slate-500">
               {new Date(item.timestamp).toLocaleString(undefined, {
@@ -112,6 +116,31 @@ export function HistoryView() {
             <p className="mt-3 flex-1 line-clamp-3 text-sm leading-relaxed text-slate-600">
               {result.plainEnglish}
             </p>
+
+            <div className="mt-4 rounded-lg bg-white/50 p-3 text-sm text-slate-700 ring-1 ring-slate-200/50">
+              <div className="flex justify-between py-1">
+                <span className="font-medium text-slate-500">Risk Score:</span>
+                <span className="font-semibold">{item.riskScore ?? 0}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="font-medium text-slate-500">Severity:</span>
+                <span className="font-semibold capitalize">{item.severity ?? result.overallRisk}</span>
+              </div>
+              <div className="flex justify-between py-1">
+                <span className="font-medium text-slate-500">Confidence:</span>
+                <span className="font-semibold">{item.confidence ?? 0}%</span>
+              </div>
+              {item.riskCategories && item.riskCategories.length > 0 && (
+                <div className="mt-2 border-t border-slate-200/50 pt-2">
+                  <span className="font-medium text-slate-500">Categories:</span>
+                  <ul className="mt-1 list-inside list-disc text-slate-600">
+                    {item.riskCategories.map((cat, i) => (
+                      <li key={i}>{cat}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
 
             <div className="mt-5 flex gap-2">
               <button

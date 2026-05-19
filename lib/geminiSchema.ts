@@ -2,7 +2,7 @@ import { Type } from "@google/genai";
 
 const riskLevelSchema = {
   type: Type.STRING,
-  enum: ["low", "medium", "high"],
+  enum: ["low", "medium", "high", "critical"],
 };
 
 /** JSON schema for Gemini structured contract analysis output */
@@ -12,7 +12,7 @@ export const contractAnalysisJsonSchema = {
     overallRisk: {
       type: Type.STRING,
       description: "Overall contract risk level",
-      enum: ["low", "medium", "high"],
+      enum: ["low", "medium", "high", "critical"],
     },
     documentType: {
       type: Type.STRING,
@@ -29,8 +29,9 @@ export const contractAnalysisJsonSchema = {
         low: { type: Type.NUMBER },
         medium: { type: Type.NUMBER },
         high: { type: Type.NUMBER },
+        critical: { type: Type.NUMBER },
       },
-      required: ["low", "medium", "high"],
+      required: ["low", "medium", "high", "critical"],
     },
     plainEnglish: {
       type: Type.STRING,
@@ -115,6 +116,19 @@ export const contractAnalysisJsonSchema = {
         required: ["title", "description", "confidence", "tag", "severity"],
       },
     },
+    riskScore: {
+      type: Type.NUMBER,
+      description: "Overall risk score from 0 to 100",
+    },
+    confidence: {
+      type: Type.NUMBER,
+      description: "Confidence percentage of the analysis from 0 to 100",
+    },
+    riskCategories: {
+      type: Type.ARRAY,
+      items: { type: Type.STRING },
+      description: "List of risk categories identified in the contract",
+    },
   },
   required: [
     "overallRisk",
@@ -128,5 +142,8 @@ export const contractAnalysisJsonSchema = {
     "privacyConcerns",
     "recommendations",
     "findings",
+    "riskScore",
+    "confidence",
+    "riskCategories",
   ],
 };

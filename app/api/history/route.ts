@@ -29,6 +29,10 @@ export async function GET(request: NextRequest) {
         fileName: h.fileName,
         result: h.result,
         timestamp: h.createdAt.toISOString(),
+        riskScore: h.riskScore,
+        severity: h.severity,
+        confidence: h.confidence,
+        riskCategories: h.riskCategories,
       }))
     );
   } catch (error) {
@@ -47,6 +51,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { contractText, fileName, result } = body;
 
+    const severity = result.overallRisk;
+    const confidence = result.confidence || 0;
+    const riskCategories = result.riskCategories || [];
+    const riskScore = result.riskScore || 0;
+
     // Upsert the user to ensure they exist in PostgreSQL
     const dbUser = await prisma.user.upsert({
       where: { firebaseUid: user.uid },
@@ -63,6 +72,10 @@ export async function POST(request: NextRequest) {
         contractText,
         fileName,
         result: result as any,
+        riskScore,
+        severity,
+        confidence,
+        riskCategories,
       },
     });
 
@@ -72,6 +85,10 @@ export async function POST(request: NextRequest) {
       fileName: newAnalysis.fileName,
       result: newAnalysis.result,
       timestamp: newAnalysis.createdAt.toISOString(),
+      riskScore: newAnalysis.riskScore,
+      severity: newAnalysis.severity,
+      confidence: newAnalysis.confidence,
+      riskCategories: newAnalysis.riskCategories,
     });
   } catch (error) {
     console.error("Failed to save history:", error);

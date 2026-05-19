@@ -23,11 +23,15 @@ model User {
 }
 
 model ContractAnalysis {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  fileName     String?
-  contractText String
-  result       Json
-  createdAt    DateTime @default(now())
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fileName       String?
+  contractText   String
+  result         Json
+  riskScore      Int?
+  severity       String?
+  confidence     Int?
+  riskCategories String[] @default([])
+  createdAt      DateTime @default(now())
 }

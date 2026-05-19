@@ -14,7 +14,7 @@ function uid(prefix: string, index: number) {
 
 function normalizeRisk(value: string): RiskLevel {
   const v = value?.toLowerCase();
-  if (v === "low" || v === "medium" || v === "high") return v;
+  if (v === "low" || v === "medium" || v === "high" || v === "critical") return v as RiskLevel;
   return "medium";
 }
 
@@ -55,7 +55,17 @@ export function mapGeminiToAnalysisResult(
     party: l.party,
   }));
 
-  const scores = payload.riskScores ?? { low: 0, medium: 0, high: 0 };
+  const scores = payload.riskScores ?? { low: 0, medium: 0, high: 0, critical: 0 };
+  
+  let riskScore = payload.riskScore;
+  if (typeof riskScore !== 'number') {
+    riskScore = Math.min(100, ((scores.critical || 0) * 30) + ((scores.high || 0) * 20) + ((scores.medium || 0) * 10) + ((scores.low || 0) * 5));
+  }
+  
+  const confidence = typeof payload.confidence === 'number' ? clampConfidence(payload.confidence) : clampConfidence(Number(payload.documentTypeConfidence));
+  const riskCategories = Array.isArray(payload.riskCategories) && payload.riskCategories.length > 0 
+    ? payload.riskCategories 
+    : Array.from(new Set(riskyClauses.map(c => c.category).filter(Boolean)));
 
   return {
     overallRisk: normalizeRisk(payload.overallRisk),
@@ -67,6 +77,7 @@ export function mapGeminiToAnalysisResult(
       low: Math.max(0, Number(scores.low) || 0),
       medium: Math.max(0, Number(scores.medium) || 0),
       high: Math.max(0, Number(scores.high) || 0),
+      critical: Math.max(0, Number(scores.critical) || 0),
     },
     plainEnglish: payload.plainEnglish || "No summary available.",
     riskyClauses,
@@ -93,5 +104,8 @@ export function mapGeminiToAnalysisResult(
     })),
     analyzedAt: new Date().toISOString(),
     wordCount,
+    riskScore,
+    confidence,
+    riskCategories,
   };
 }

@@ -6,7 +6,6 @@ import type {
   Recommendation,
 } from "@/lib/types";
 import { riskConfig } from "@/lib/riskStyles";
-import { computeOverallRiskScore } from "@/lib/computeRiskScore";
 import { SparklesIcon } from "./icons";
 import { RiskBadge } from "./results/RiskBadge";
 
@@ -60,6 +59,24 @@ export function AIFindingsSidebar({
           </div>
         )}
 
+        {result && visible && result.riskCategories && result.riskCategories.length > 0 && (
+          <div className="border-b border-slate-100 bg-purple-50/40 p-4">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wide text-purple-800">
+              Risk Categories
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {result.riskCategories.map((cat, i) => (
+                <span
+                  key={i}
+                  className="rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-purple-700 shadow-sm ring-1 ring-purple-200"
+                >
+                  {cat}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
         {result && visible && (
           <div className="border-b border-slate-100 p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
@@ -68,16 +85,15 @@ export function AIFindingsSidebar({
               </span>
               <RiskBadge level={result.overallRisk} size="sm" showDot />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <Stat
                 label="Score"
-                value={String(
-                  computeOverallRiskScore(
-                    result.riskScores,
-                    result.overallRisk,
-                  ),
-                )}
+                value={String(result.riskScore ?? 0)}
                 valueClass={riskConfig[result.overallRisk].color}
+              />
+              <Stat
+                label="Conf."
+                value={`${result.confidence ?? 0}%`}
               />
               <Stat
                 label="Words"

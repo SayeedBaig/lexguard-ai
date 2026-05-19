@@ -8,6 +8,10 @@ export interface HistoryItem {
   fileName: string | null;
   result: AnalysisResult;
   timestamp: string;
+  riskScore?: number;
+  severity?: string;
+  confidence?: number;
+  riskCategories?: string[];
 }
 
 export async function getHistory(token: string): Promise<HistoryItem[]> {

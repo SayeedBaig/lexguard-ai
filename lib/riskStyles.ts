@@ -67,4 +67,20 @@ export const riskConfig: Record<
       category: "bg-red-100/80 text-red-800 ring-red-200/60",
     },
   },
+  critical: {
+    label: "Critical",
+    riskLabel: "Critical risk",
+    color: "text-rose-900",
+    bg: "bg-rose-100",
+    border: "border-rose-300",
+    bar: "bg-rose-700",
+    iconBg: "bg-rose-200 text-rose-900",
+    highlight: "card-highlight ring-rose-300",
+    clause: {
+      card: "border-rose-300/90 bg-gradient-to-br from-rose-100/80 to-white ring-1 ring-rose-200/80",
+      excerpt: "border-rose-300 bg-rose-100/40",
+      explanation: "border-rose-200 bg-rose-100/30",
+      category: "bg-rose-200/80 text-rose-900 ring-rose-300/60",
+    },
+  },
 };

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { AnalysisResult } from "@/lib/types";
 import { fetchContractAnalysis } from "@/lib/analyzeClient";
-import { TEMPLATE_STORAGE_KEY } from "@/lib/templates";
+import { TEMPLATE_STORAGE_KEY, TEMPLATE_TITLE_KEY } from "@/lib/templates";
 import { AIFindingsSidebar } from "./AIFindingsSidebar";
 import { AnalysisErrorBanner } from "./AnalysisErrorBanner";
 import { AnalysisResults } from "./AnalysisResults";
@@ -45,6 +45,14 @@ export function Dashboard() {
     setIsAnalyzing(true);
 
     try {
+      // Define a fallback name if one doesn't exist
+      let resolvedFileName = fileName;
+      if (!resolvedFileName || resolvedFileName.trim() === "" || resolvedFileName === "Document" || resolvedFileName === "Untitled") {
+        const timestamp = new Date().toLocaleString();
+        resolvedFileName = `Uploaded Contract - ${timestamp}`;
+        setFileName(resolvedFileName);
+      }
+
       const analysis = await fetchContractAnalysis(text, token);
       setResult(analysis);
       setHasAnalyzed(true);
@@ -52,7 +60,7 @@ export function Dashboard() {
       if (token) {
         saveHistoryItem({
           contractText: text,
-          fileName: fileName,
+          fileName: resolvedFileName,
           result: analysis,
         }, token).catch(e => console.error("Failed to save history", e));
       }
@@ -74,10 +82,12 @@ export function Dashboard() {
 
   useEffect(() => {
     const stored = sessionStorage.getItem(TEMPLATE_STORAGE_KEY);
+    const storedTitle = sessionStorage.getItem(TEMPLATE_TITLE_KEY);
     if (stored) {
       setContractText(stored);
-      setFileName("Template");
+      setFileName(storedTitle || "Contract Template");
       sessionStorage.removeItem(TEMPLATE_STORAGE_KEY);
+      sessionStorage.removeItem(TEMPLATE_TITLE_KEY);
       return;
     }
 
@@ -149,6 +159,7 @@ export function Dashboard() {
                 result={result}
                 visible={hasAnalyzed}
                 isAnalyzing={isAnalyzing}
+                contractText={contractText}
                 contractLabel={fileName}
               />
             )}

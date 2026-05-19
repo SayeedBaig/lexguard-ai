@@ -1,9 +1,10 @@
-export type RiskLevel = "low" | "medium" | "high";
+export type RiskLevel = "low" | "medium" | "high" | "critical";
 
 export interface RiskScores {
   low: number;
   medium: number;
   high: number;
+  critical: number;
 }
 
 export interface RiskyClause {
@@ -60,6 +61,9 @@ export interface AnalysisResult {
   recommendations: Recommendation[];
   analyzedAt: string;
   wordCount: number;
+  riskScore: number;
+  confidence: number;
+  riskCategories: string[];
 }
 
 /** Raw JSON shape returned by Gemini */
@@ -96,4 +100,7 @@ export interface GeminiAnalysisPayload {
     tag: string;
     severity: RiskLevel;
   }>;
+  riskScore?: number;
+  confidence?: number;
+  riskCategories?: string[];
 }
