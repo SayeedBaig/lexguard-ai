@@ -2,7 +2,7 @@ import {
   computeOverallRiskScore,
   riskScoreLabel,
 } from "../computeRiskScore";
-import type { AnalysisResult, RiskLevel } from "../types";
+import type { AnalysisResult, NegotiationRecommendation, RiskLevel } from "../types";
 import { escapeHtml } from "./escapeHtml";
 import { reportRisk, reportStyles } from "./reportTheme";
 
@@ -13,6 +13,22 @@ export interface ReportOptions {
 function severityBadge(level: RiskLevel): string {
   const r = reportRisk[level];
   return `<span class="badge" style="color:${r.color};background:${r.bg};border-color:${r.border}">${escapeHtml(r.riskLabel)}</span>`;
+}
+
+function leverageLabel(leverage: string): string {
+  const map: Record<string, string> = {
+    strong: "Strong Leverage",
+    moderate: "Moderate Leverage",
+    weak: "Limited Leverage",
+  };
+  const colorMap: Record<string, string> = {
+    strong: "#059669",
+    moderate: "#d97706",
+    weak: "#dc2626",
+  };
+  const label = map[leverage] ?? "Moderate Leverage";
+  const color = colorMap[leverage] ?? "#d97706";
+  return `<span style="font-weight:600;color:${color}">${escapeHtml(label)}</span>`;
 }
 
 function section(title: string, body: string): string {
@@ -123,6 +139,82 @@ export function buildRiskReportHtml(
           )
           .join("");
 
+  const negotiationRecs: NegotiationRecommendation[] = result.negotiationRecommendations
+    ? Object.values(result.negotiationRecommendations)
+    : [];
+
+  const negotiationHtml = (() => {
+    if (!result.negotiationStrategy && negotiationRecs.length === 0) return "";
+
+    const strategyBlock = result.negotiationStrategy
+      ? `<div class="item" style="background:#f5f3ff22;border-color:#a78bfa">
+          <p class="item-title" style="color:#5b21b6">Negotiation Strategy</p>
+          <p class="body-text" style="margin-top:6px">${escapeHtml(result.negotiationStrategy)}</p>
+          ${result.overallLeverage ? `<p style="margin-top:8px;font-size:9pt">Your leverage: ${leverageLabel(result.overallLeverage)}</p>` : ""}
+          ${result.negotiationPriorityFocus ? `<p style="margin-top:6px;font-size:9pt;color:#6b7280"><strong>Priority:</strong> ${escapeHtml(result.negotiationPriorityFocus)}</p>` : ""}
+        </div>`
+      : "";
+
+    const quickWinsBlock =
+      result.quickWins && result.quickWins.length > 0
+        ? `<div class="item" style="background:#f0fdf422;border-color:#86efac">
+            <p class="item-title" style="color:#15803d">⚡ Quick Wins</p>
+            <ul style="margin:8px 0 0 16px;padding:0">
+              ${result.quickWins.map((w) => `<li style="font-size:9pt;color:#166534;margin-bottom:4px">${escapeHtml(w)}</li>`).join("")}
+            </ul>
+          </div>`
+        : "";
+
+    const recsBlock =
+      negotiationRecs.length === 0
+        ? emptyNote("No negotiation recommendations generated.")
+        : negotiationRecs
+            .map(
+              (rec, i) => {
+                const r = reportRisk[rec.priority];
+                return `
+              <div class="item" style="border-color:${r.border};background:${r.bg}22">
+                <div class="item-header">
+                  <div>
+                    <span class="item-title"><span class="rec-num">${i + 1}</span>${escapeHtml(rec.clauseTitle)}</span>
+                    <p class="category">${escapeHtml(rec.issue)}</p>
+                  </div>
+                  ${severityBadge(rec.priority)}
+                </div>
+                <div style="margin-top:8px">
+                  <p style="font-size:9pt;font-weight:600;color:#5b21b6">Recommendation</p>
+                  <p class="body-text">${escapeHtml(rec.recommendation)}</p>
+                </div>
+                <div style="margin-top:6px">
+                  <p style="font-size:9pt;font-weight:600;color:#374151">Business Impact</p>
+                  <p class="body-text">${escapeHtml(rec.businessImpact)}</p>
+                </div>
+                ${rec.alternativeWording ? `<div style="margin-top:8px;padding:8px 10px;background:#f0fdf4;border:1px solid #86efac;border-radius:6px">
+                  <p style="font-size:9pt;font-weight:600;color:#15803d">Suggested wording</p>
+                  <p style="font-size:9pt;font-style:italic;color:#166534;margin-top:4px">&ldquo;${escapeHtml(rec.alternativeWording)}&rdquo;</p>
+                </div>` : ""}
+                ${!rec.negotiable ? `<p style="margin-top:6px;font-size:8pt;color:#9ca3af">ℹ Standard clause — limited negotiability</p>` : ""}
+              </div>`;
+              },
+            )
+            .join("");
+
+    const walkAwayBlock =
+      result.walkAwayTriggers && result.walkAwayTriggers.length > 0
+        ? `<div class="item" style="background:#fef2f222;border-color:#fca5a5">
+            <p class="item-title" style="color:#991b1b">⚠ Walk-Away Triggers</p>
+            <ul style="margin:8px 0 0 16px;padding:0">
+              ${result.walkAwayTriggers.map((t) => `<li style="font-size:9pt;color:#7f1d1d;margin-bottom:4px">${escapeHtml(t)}</li>`).join("")}
+            </ul>
+          </div>`
+        : "";
+
+    return section(
+      "Negotiation Guidance",
+      strategyBlock + quickWinsBlock + recsBlock + walkAwayBlock,
+    );
+  })();
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -158,7 +250,7 @@ export function buildRiskReportHtml(
 
     <div class="summary">
       <strong style="color:#0f172a">Executive summary</strong><br /><br />
-      ${escapeHtml(result.plainEnglish)}
+      ${escapeHtml(result.executiveSummary || result.plainEnglish)}
     </div>
 
     ${section("Risky clauses", clausesHtml)}
@@ -166,6 +258,7 @@ export function buildRiskReportHtml(
     ${section("Liabilities", liabilitiesHtml)}
     ${section("Privacy & data concerns", privacyHtml)}
     ${section("Recommendations", recommendationsHtml)}
+    ${negotiationHtml}
 
     <footer class="footer">
       <strong>Disclaimer:</strong> This report was generated by LexGuard AI-assisted contract analysis.
@@ -174,7 +267,7 @@ export function buildRiskReportHtml(
     </footer>
 
     <p class="no-print" style="margin-top:24px;font-size:9pt;color:#64748b;text-align:center">
-      To save as PDF: use your browser’s <strong>Print</strong> dialog and choose <strong>Save as PDF</strong>.
+      To save as PDF: use your browser's <strong>Print</strong> dialog and choose <strong>Save as PDF</strong>.
     </p>
   </div>
 </body>

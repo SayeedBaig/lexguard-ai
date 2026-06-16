@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { analyzeContractWithGemini } from "@/lib/gemini";
+import { orchestrateContractAnalysis } from "@/lib/agents";
 import { verifyRequestAuth } from "@/lib/apiAuth";
 
 export const maxDuration = 60;
@@ -17,16 +17,25 @@ export async function POST(request: NextRequest) {
 
     if (!contractText.trim()) {
       return NextResponse.json(
-        {
-          error:
-            "Please paste or upload contract text before analyzing.",
-        },
+        { error: "Please paste or upload contract text before analyzing." },
         { status: 400 },
       );
     }
 
-    const result = await analyzeContractWithGemini(contractText);
-    return NextResponse.json(result);
+    // Run the multi-agent orchestration pipeline:
+    //   1. Risk Detector Agent  → risk scoring, clause extraction
+    //   2. Legal Simplifier Agent → plain-English summaries, user actions
+    const orchestratorResult = await orchestrateContractAnalysis(contractText);
+
+    // Attach pipeline metadata to the analysis for observability
+    const response = {
+      ...orchestratorResult.analysis,
+      _agentTrace: orchestratorResult.agentTrace,
+      _runId: orchestratorResult.runId,
+      _totalDurationMs: orchestratorResult.totalDurationMs,
+    };
+
+    return NextResponse.json(response);
   } catch (error) {
     const message =
       error instanceof Error
@@ -39,9 +48,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: message },
-      {
-        status: isConfig ? 503 : isValidation ? 400 : 500,
-      },
+      { status: isConfig ? 503 : isValidation ? 400 : 500 },
     );
   }
 }

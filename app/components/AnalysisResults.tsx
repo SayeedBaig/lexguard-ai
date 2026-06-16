@@ -4,6 +4,7 @@ import type { AnalysisResult } from "@/lib/types";
 import { OverallRiskBanner } from "./OverallRiskBanner";
 import { RiskScoreCards } from "./RiskScoreCards";
 import { RecommendationsSection } from "./RecommendationsSection";
+import { NegotiationSection } from "./NegotiationSection";
 import { RiskyClausesPanel } from "./RiskyClausesPanel";
 import { PrivacyConcernsSection } from "./PrivacyConcernsSection";
 import { PlainEnglishSection } from "./PlainEnglishSection";
@@ -12,6 +13,7 @@ import { LiabilitiesSection } from "./LiabilitiesSection";
 import { DownloadReportButton } from "./DownloadReportButton";
 import { ContractCategoryCard } from "./ContractCategoryCard";
 import { HighlightedContract } from "./HighlightedContract";
+
 
 interface AnalysisResultsProps {
   result: AnalysisResult;
@@ -63,6 +65,9 @@ export function AnalysisResults({
         recommendations={result.recommendations}
         visible
       />
+
+      {/* Agent 3: Negotiation Recommender output */}
+      <NegotiationSection result={result} visible />
 
       <HighlightedContract contractText={contractText} result={result} />
 

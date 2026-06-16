@@ -47,6 +47,33 @@ export interface Recommendation {
   priority: RiskLevel;
 }
 
+// ---------------------------------------------------------------------------
+// Legal Simplifier enrichment types (added by multi-agent pipeline)
+// ---------------------------------------------------------------------------
+
+export interface SimplifiedClause {
+  clauseId: string;
+  friendlyTitle: string;
+  plainExplanation: string;
+  actionAdvice: string;
+  severityLabel: string;
+}
+
+// ---------------------------------------------------------------------------
+// Negotiation Recommender enrichment types (added by multi-agent pipeline)
+// ---------------------------------------------------------------------------
+
+export interface NegotiationRecommendation {
+  clauseId: string;
+  clauseTitle: string;
+  issue: string;
+  recommendation: string;
+  businessImpact: string;
+  alternativeWording?: string;
+  priority: RiskLevel;
+  negotiable: boolean;
+}
+
 export interface AnalysisResult {
   riskScores: RiskScores;
   overallRisk: RiskLevel;
@@ -64,6 +91,31 @@ export interface AnalysisResult {
   riskScore: number;
   confidence: number;
   riskCategories: string[];
+  // ---- Multi-agent enrichment fields (Legal Simplifier Agent output) ----
+  /** Polished executive summary from Legal Simplifier Agent */
+  executiveSummary?: string;
+  /** One-sentence TLDR for the contract */
+  tldr?: string;
+  /** Key actions the user should take */
+  keyActions?: string[];
+  /** Per-clause plain-English simplifications keyed by clause id */
+  simplifiedClauses?: Record<string, SimplifiedClause>;
+  // ---- Multi-agent enrichment fields (Negotiation Recommender Agent output) ----
+  /** Overall negotiation strategy */
+  negotiationStrategy?: string;
+  /** Per-clause negotiation recommendations keyed by clauseId */
+  negotiationRecommendations?: Record<string, NegotiationRecommendation>;
+  /** User's overall negotiation leverage */
+  overallLeverage?: "strong" | "moderate" | "weak";
+  /** Where to focus negotiation energy */
+  negotiationPriorityFocus?: string;
+  /** Walk-away conditions */
+  walkAwayTriggers?: string[];
+  /** Easy negotiation wins */
+  quickWins?: string[];
+  /** Multi-agent pipeline metadata (attached by orchestrator) */
+  _agentTrace?: Array<{ agentName: string; success: boolean; durationMs: number; error?: string }>;
+  _runId?: string;
 }
 
 /** Raw JSON shape returned by Gemini */

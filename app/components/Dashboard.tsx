@@ -10,6 +10,7 @@ import { AnalysisResults } from "./AnalysisResults";
 import { AppShell } from "./AppShell";
 import { ContractInput } from "./ContractInput";
 import { LoadingOverlay } from "./LoadingOverlay";
+import { ContractChatFloating } from "./ContractChat";
 import { saveHistoryItem, RESTORE_HISTORY_KEY, HistoryItem } from "@/lib/history";
 import { useAuth } from "../context/AuthContext";
 
@@ -173,6 +174,11 @@ export function Dashboard() {
           />
         </div>
       </main>
+
+      {/* Floating Contract AI Assistant — shown once analysis is complete */}
+      {result && hasAnalyzed && contractText && (
+        <ContractChatFloating result={result} contractText={contractText} />
+      )}
     </AppShell>
   );
 }

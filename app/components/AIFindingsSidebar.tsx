@@ -9,6 +9,33 @@ import { riskConfig } from "@/lib/riskStyles";
 import { SparklesIcon } from "./icons";
 import { RiskBadge } from "./results/RiskBadge";
 
+function AskAICTA() {
+  return (
+    <div className="border-b border-slate-100 bg-gradient-to-br from-indigo-50 to-violet-50/60 p-4">
+      <div className="flex items-start gap-3">
+        <div className="relative mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-white">
+          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none">
+            <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" fill="currentColor" fillOpacity="0.2" />
+          </svg>
+          <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-75" />
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-violet-500" />
+          </span>
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-indigo-900">Contract Assistant</p>
+          <p className="mt-0.5 text-[11px] leading-relaxed text-indigo-700">
+            Get instant answers about this contract
+          </p>
+          <p className="mt-2 text-[10px] text-indigo-500">
+            Click the button at the bottom of the screen
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface AIFindingsSidebarProps {
   findings: AIFinding[];
   recommendations: Recommendation[];
@@ -44,6 +71,10 @@ export function AIFindingsSidebar({
             </div>
           </div>
         </div>
+
+        {result && visible && (
+          <AskAICTA />
+        )}
 
         {result && visible && (
           <div className="border-b border-slate-100 bg-indigo-50/40 px-4 py-3">
